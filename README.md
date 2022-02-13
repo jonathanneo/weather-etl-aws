@@ -7,14 +7,14 @@ This project, weather-etl-aws, provides student an example of the same project h
 
 # Repo structure 
 ```
-.github/workflows                           # contains continuous integration pipelines 
 data/                                       # contains static datasets 
 docs/                                       # contains additional documentation 
 images/                                     # contains images used for the README
 lambda_app/    
     |__ _config.template.sh                 # template for adding credentials and secrets 
     |__ ddl_create_table.sql                # SQL code used to create the target tables 
-    |__ etl.py                              # an auto-generated file from the python ETL notebook (do not write your code here)
+    |__ etl_lambda.py                       # contains the main etl logic 
+    |__ etl_lambda_local.py                 # contains the etl logic to run locally 
     |__ test_transformation_functions.py    # pytest unit tests 
     |__ transform_functions.py              # custom user-generated transformation functions 
     |__ requirements.txt                    # python dependencies for lambda app 
@@ -88,7 +88,7 @@ To save time running each variable in the terminal, you may wish to create scrip
 
 ### Run the application locally 
 
-To run the application locally, simply run `etl_lambda_local.py`. 
+To run the application locally, simply run `python etl_lambda_local.py`. 
 
 `etl_lambda_local.py` will import the main function in `etl_lambda.py` and run it. 
 
@@ -98,139 +98,203 @@ If successful, you should see records appearing in your local postgres database.
 
 Follow these steps to deploy the solution to AWS. 
 
-- 
+- [1. Deploy PostgreSQL on AWS RDS](#deploy-postgresql-on-aws-rds)
+- [2. Deploy S3 bucket](#deploy-s3-bucket)
 
-## Python dependencies 
-The required python libraries and version have been specified in [requirements.txt](requirements.txt). 
+### Deploy PostgreSQL on AWS RDS 
 
-Install python dependencies by performing : 
+1. In the AWS Console, search for "RDS". 
+2. Choose the region closest to you on the top-right e.g. Sydney (ap-southeast-2)
+3. Select "Create database" 
+4. Configure database. Note: Unless specified, leave the settings to default. 
+    1. Select "PostgreSQL" 
+    2. Select Version "12.9-R1" (for the free tier, you will need to use a version below 13). 
+    3. Select templates: "Free tier"
+    4. Provide a DB instance identifier. Note: this is the name that appears on AWS and not the actual name of the database or server. 
+    5. Set master username: "postgres"
+    6. Set master password: `<specify your password>`
+    7. Set confirm password: `<specify your password>`
+    8. In connectivity, set public access: "Yes" 
+    9. In additional configuration, deselect "Enable automated backups" 
+    10. Select "Create database" 
+5. After the database has been deployed, select the database and go to "Security group rules" and select the Security Group(s) with Type: "CIDR/IP - Inbound". 
+    1. In the Security Group, select "Inbound rules" 
+    2. Select "Edit inbound rules" 
+    3. Select "Add rule" and add a new rule for: 
+        - Type: "All traffic" 
+        - Protocol: "All" 
+        - Port Range: "All" 
+        - Source: "Anywhere-IPv4"
+    4. Select "Save rules" 
+6. Try connecting to your database now from PgAdmin4. You should be successful. 
+7. After connecting to the database, create a new query tool and run [ddl_create_table.sql](lambda_app/ddl_create_table.sql) to create the database tables. 
 
-```
-pip install -r requirements.txt 
-```
+### Deploy S3 bucket  
 
-## Credentials 
-In the `script/` folder, create a `credentials.py` file with the following variables:
-```py
-api_key = "<your_api_key>"                  # open weather API api key 
-db_user = "<your_database_user>"            # postgresql username 
-db_password = "<your_database_password>"    # postgresql password 
-```
+1. In the AWS Console, search for "S3". 
+2. Select "Create bucket" 
+3. Configure bucket. Note: Unless specified, leave the settings to default. 
+    1. Provide bucket name
+    2. AWS Region: Choose the region closest to you e.g. Sydney (ap-southeast-2)
+    3. Deselect "Block all public access" 
+    4. Select "Create bucket" 
+4. After the bucket is deployed, go to the bucket and into the "Permissions" tab and into the bucket policy. Set the bucket policy to: 
 
-These credentials will be used in the `etl.ipynb` notebook. 
+    ```json
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "PublicRead",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": [
+                    "s3:GetObject",
+                    "s3:GetObjectVersion"
+                ],
+                "Resource": "arn:aws:s3:::your-bucket-arn-here/*"
+            }
+        ]
+    }
+    ```
 
-The `credentials.py` file is already in .gitignore and thus your credentials will not be stored on Git. 
+    Save changes. 
 
-## Running code locally 
-To run the ETL code on your computer, execute the following in your terminal: 
+5. Upload [australian_capital_cities.csv](data/australian_capital_cities.csv) to the bucket. 
+6. Keep in mind the URL for newly uploaded CSV file. 
 
-```
-cd scripts
-python -m jupyter nbconvert --to python scripts/etl.ipynb
-python scripts/etl.py
-```
+### Declare environment variables 
 
-## Run unit tests 
-To run the unit tests on your computer, execute the following in your terminal: 
+If you look into the `etl_lambda.py` file, you will see that there are several lines for: 
 
-```
-pytest scripts
-```
+```python 
+# getting CSV_ENDPOINT_CAPITAL_CITIES environment variable 
+CSV_ENDPOINT_CAPITAL_CITIES = os.environ.get("CSV_ENDPOINT_CAPITAL_CITIES")
 
-You should see the following output: 
-
-```
-====== test session starts ======
-platform darwin -- Python 3.7.11, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
-collected 2 items
-scripts/test_transformation_functions.py .. [100%]
-====== 2 passed in 0.36s ======
-```
-
-## Continuous integration 
-
-To ensure that code is tested prior to merging to the `main` branch, an automated Continuous Integration (CI) pipeline has been configured. 
-
-See code [here](.github/workflows/etl-ci.yml). 
-
-The expected output when the CI pipeline runs are: 
-
-1. Successful execution of CI pipeline 
-
-![ci-pipeline.png](images/ci-pipeline.png)
-
-
-2. All unit tests passed 
-
-![ci-test-output.png](images/ci-test-output.png)
-
-
-
-## Scheduling jobs 
-
-
-<details>
-<summary><strong> Cron (MacOS or Linux) </strong></summary>
-
-To schedule a job using cron (see full guide [here](https://ole.michelsen.dk/blog/schedule-jobs-with-crontab-on-mac-osx/)): 
-
-```sh 
-# open crontab 
-env EDITOR=nano crontab -e
-# paste the following into crontab
-* * * * * cd /Users/jonathanneo/Documents/trilogy/weather-etl/scripts && bash run_etl.sh
-# write the file using: CTRL + O
-# close the file using: CTRL + X
-# check that the cron job has been scheduled - you should see your job appear 
-crontab -l 
+# getting API_KEY_OPEN_WEATHER environment variable 
+API_KEY_OPEN_WEATHER = os.environ.get("API_KEY_OPEN_WEATHER")
 ```
 
-You should see the following output: 
+These lines are used to store variables that are either (1) secrets, or (2) change between environments (e.g. dev, test, production). 
+
+We will first need to declare the values for these variables. This can easily be done by running the following in the terminal: 
+
+<b>macOS:</b> 
 ```
-(base) Jonathans-MacBook-Pro-2:~ jonathanneo$ crontab -l
-* * * * * cd /Users/jonathanneo/Documents/trilogy/weather-etl/scripts && bash run_etl.sh
+export CSV_ENDPOINT_CAPITAL_CITIES="path_to_csv" # from S3 object url
+export API_KEY_OPEN_WEATHER="secret_goes_here"
+export DB_USER="secret_goes_here" # e.g. postgres 
+export DB_PASSWORD="secret_goes_here" # e.g. postgres 
+export DB_SERVER_NAME="secret_goes_here" # e.g. postgres server host name on AWS 
+export DB_DATABASE_NAME="secret_goes_here" 
 ```
 
-</details>
+<b>windows:</b> 
 
-<details>
-<summary><strong> Task Scheduler (Windows) </strong></summary>
+```
+set CSV_ENDPOINT_CAPITAL_CITIES="path_to_csv" # from S3 object url
+set API_KEY_OPEN_WEATHER="secret_goes_here"
+set DB_USER="secret_goes_here" # e.g. postgres 
+set DB_PASSWORD="secret_goes_here" # e.g. postgres 
+set DB_SERVER_NAME="secret_goes_here" # e.g. postgres server host name on AWS 
+set DB_DATABASE_NAME="secret_goes_here"
+```
 
-1. Open Task Scheduler on windows 
+To save time running each variable in the terminal, you may wish to create script files to store the declaration of each variable. 
 
-2. Select `Create task`
+- macOS: store the declaration of the variables in a `config.aws.sh` file 
+    - run using `. ./config.aws.sh` 
+- windows: store the declaration of the variables in a `config.aws.bat` file 
+    - run using `. ./config.aws.bat` 
 
-![images/task-scheduler-1.png](images/task-scheduler-1.png)
 
-3. Provide a name for the task 
+### Test locally 
 
-![images/task-scheduler-2.png](images/task-scheduler-2.png)
+At this point, it is a good idea to test that everything still works when running the ETL code using a combination of services deployed on AWS and running locally. 
 
-4. Select `Actions` > `New` 
+```
+# declare the environment variables (macOS)
+. ./config.aws.sh
 
-![images/task-scheduler-3.png](images/task-scheduler-3.png)
+# or, declare the environment variables (windows)
+. ./config.aws.bat
 
-5. Provide the following details, and click `OK`: 
-    - Program/script: `<provide path to your python.exe in your conda environment folder>`
-        - Example: `C:\Users\jonat\anaconda3\envs\PythonData\python.exe`
-    - Add arguments (optional): `<provide the etl file>`
-        - Example: `etl.py` 
-    - Start in (optional): `<provide the path to the etl file>` 
-        - Example: `C:\Users\jonat\Documents\weather-etl\scripts`
+# run the ETL app 
+python etl_lambda_local.py
+```
 
-![images/task-scheduler-4.png](images/task-scheduler-4.png)
+If successful, then proceed on to the next step, otherwise troubleshoot the issue. 
 
-6. Select `Triggers` 
 
-![images/task-scheduler-5.png](images/task-scheduler-5.png)
+### Deploy ETL to AWS Lambda
 
-7. Provide details of when you would like the job to run 
+#### Build app
 
-![images/task-scheduler-6.png](images/task-scheduler-6.png)
+Before we can deploy the app, we need to first build the app. 
 
-8. Click `OK` 
+Building the app refers to packaging and compiling the app so that it is in a state that can be readily deployed onto the target platform (e.g. AWS, Heroku, Azure, GCP, etc). We can skip the compilation since Python is not a compiled language, however we still need to package the app. 
 
-</details>
+To package the app, we will run the following lines of code: 
 
-# Contributors
-- [@jonathanneo](https://github.com/jonathanneo)
+<b>macOS</b>:
+```
+pip install --target ./.package -r ./requirements.lambda.txt
+cd .package
+zip -r ../lambda_package.zip .
+cd ..
+zip -g ../lambda_package.zip etl_lambda.py transform_functions.py
+```
+
+<b>windows</b>:
+```
+pip install --target ./.package -r ./requirements.lambda.txt
+cd .package
+zip -r ../lambda_package.zip .
+cd ..
+zip -g lambda_package.zip etl_lambda.py transform_functions.py
+```
+
+This will produce a `.zip` file which contains all the code and library packages required to run the app on AWS Lambda. Note that some libraries like Pandas and Numpy were not packaged in the process as those libraries need to be packaged using a linux machine, whereas we are using Mac or Windows machines. So instead, we will use Layers in AWS Lambda later. 
+
+For re-use, we've stored the commands in [build.sh](lambda_app/build.sh) and [build.bat](lambda_app/build.bat) respectively. 
+
+You can just build the app by running either 
+
+<b>macOS</b>:
+```
+. ./build.sh
+```
+
+<b>windows</b>:
+```
+. ./build.bat
+```
+
+#### Deploy app
+
+1. In the AWS Console, search for "Lambda". 
+2. Choose the region closest to you on the top-right e.g. Sydney (ap-southeast-2)
+3. Select "Create function" 
+4. Configure database. Note: Unless specified, leave the settings to default. 
+    1. Provide function name 
+    2. Runtime: Python 3.9
+    3. Select "Create function" 
+5. After the lambda function is deployed, go to the "Code" section, and select "Upload from" > ".zip file" and provide the .zip file you have built. Click "save" and allow up to 2 mins for the file to be uploaded and processed. 
+6. In the "Code" section go to "Runtime settings" and select "Edit". 
+    1. We need to tell AWS Lambda which file and function to execute. 
+    2. In "Handler", specify: "etl_lambda.lambda_function".
+    3. Select "Save" 
+7. In the "Code" section, scroll down to "Layers" and select "Add a layer". 
+    1. As previously mentioned, some libraries need to be installed using a linux machine as AWS Lambda is running on linux machines. However, we have Mac and Windows machines. So we will use a "Layer" which is a set of packaged libraries we can use. We will be using layers provided by https://github.com/keithrozario/Klayers. For a list of available packaged libraries in Sydney (ap-southeast-2), see: https://api.klayers.cloud//api/v2/p3.9/layers/latest/ap-southeast-2/json. The Layer we will be using is the pandas layer. 
+    2. In the Layer config, select "Specify an ARN" and provide "arn:aws:lambda:ap-southeast-2:770693421928:layer:Klayers-p39-pandas:1" and select "Verify". 
+    3. After the layer is verified, select "Add" 
+8. In the "Configuration" section, go to "Environment variables" and select "Edit". You will now create environment variables that correspond to your `config.aws.sh` or `config.aws.bat` files. 
+    1. Select "Add environment variable" and proceed to populate the "Key" and "Value" pairs for each environment variable corresponding to your `config.aws.sh` or `config.aws.bat` files. 
+9. In the "Configuration" section, go to "General configuration" and change the timeout to 30 seconds. 
+10. In the "Test" section, click on the "Test" button to trigger your lambda function. If successful, you should see 8 more records appear in your database. 
+
+### Deploy Cron Trigger on AWS EventBridge 
+
+Finally, we can look at automating the scheduling of the ETL job. 
+
+1. 
