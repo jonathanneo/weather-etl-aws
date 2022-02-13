@@ -291,7 +291,7 @@ You can just build the app by running either
 8. In the "Configuration" section, go to "Environment variables" and select "Edit". You will now create environment variables that correspond to your `config.aws.sh` or `config.aws.bat` files. 
     1. Select "Add environment variable" and proceed to populate the "Key" and "Value" pairs for each environment variable corresponding to your `config.aws.sh` or `config.aws.bat` files. 
 9. In the "Configuration" section, go to "General configuration" and change the timeout to 30 seconds. 
-10. In the "Test" section, click on the "Test" button to trigger your lambda function. If successful, you should see 8 more records appear in your database. 
+10. In the "Test" section, click on the "Test" button to trigger your lambda function. If successful, you should see more records appear in your database. 
 
 ### Deploy Cron Trigger on AWS EventBridge 
 
@@ -307,5 +307,5 @@ Finally, we can look at automating the scheduling of the ETL job.
     4. Select targets: "Lambda function"
     5. Function: `select your function name`
     6. Select "Create" 
-5. Wait until your trigger runs and check your database again. You should see 8 more records appear. 
+5. Wait until your trigger runs and check your database again. You should see more records appear. 
 
