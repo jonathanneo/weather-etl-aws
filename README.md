@@ -100,6 +100,10 @@ Follow these steps to deploy the solution to AWS.
 
 - [1. Deploy PostgreSQL on AWS RDS](#deploy-postgresql-on-aws-rds)
 - [2. Deploy S3 bucket](#deploy-s3-bucket)
+- [3. Declare environment variables](#declare-environment-variables-1)
+- [4. Test locally](#test-locally)
+- [5. Deploy ETL to AWS Lambda](#deploy-etl-to-aws-lambda)
+- [6. Deploy Cron Trigger on AWS EventBridge](#deploy-cron-trigger-on-aws-eventbridge)
 
 ### Deploy PostgreSQL on AWS RDS 
 
