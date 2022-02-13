@@ -275,7 +275,7 @@ You can just build the app by running either
 1. In the AWS Console, search for "Lambda". 
 2. Choose the region closest to you on the top-right e.g. Sydney (ap-southeast-2)
 3. Select "Create function" 
-4. Configure database. Note: Unless specified, leave the settings to default. 
+4. Configure the lambda function. Note: Unless specified, leave the settings to default. 
     1. Provide function name 
     2. Runtime: Python 3.9
     3. Select "Create function" 
@@ -297,4 +297,15 @@ You can just build the app by running either
 
 Finally, we can look at automating the scheduling of the ETL job. 
 
-1. 
+1. In the AWS Console, search for "EventBridge". 
+2. Choose the region closest to you on the top-right e.g. Sydney (ap-southeast-2)
+3. Select "Create create" 
+4. Configure EventBridge. Note: Unless specified, leave the settings to default. 
+    1. Provide a rule name 
+    2. Define pattern: "Schedule" 
+    3. Fixed rate every: "2" "minutes" (you can set it to every 2 minutes to try it out)
+    4. Select targets: "Lambda function"
+    5. Function: `select your function name`
+    6. Select "Create" 
+5. Wait until your trigger runs and check your database again. You should see 8 more records appear. 
+
