@@ -1,0 +1,22 @@
+city
+-
+city_id INT PK
+name TEXT 
+coord_lon TEXT
+coord_lat TEXT 
+
+temperature
+-
+city_id INT PK FK >- city.city_id
+datetime TEXT PK
+main_temp DECIMAL 
+main_feels_like DECIMAL 
+main_temp_min DECIMAL 
+main_temp_max DECIMAL 
+
+atmosphere
+-
+city_id INT PK FK >- city.city_id
+datetime TEXT PK
+main_pressure DECIMAL 
+main_humidity DECIMAL 
