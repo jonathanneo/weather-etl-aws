@@ -70,12 +70,12 @@ export DB_DATABASE_NAME="secret_goes_here"
 <b>windows:</b> 
 
 ```
-set CSV_ENDPOINT_CAPITAL_CITIES="path_to_csv"
-set API_KEY_OPEN_WEATHER="secret_goes_here"
-set DB_USER="secret_goes_here" # e.g. postgres 
-set DB_PASSWORD="secret_goes_here" # e.g. postgres 
-set DB_SERVER_NAME="secret_goes_here" # e.g. localhost
-set DB_DATABASE_NAME="secret_goes_here"
+set CSV_ENDPOINT_CAPITAL_CITIES=path_to_csv
+set API_KEY_OPEN_WEATHER=secret_goes_here
+set DB_USER=secret_goes_here
+set DB_PASSWORD=secret_goes_here
+set DB_SERVER_NAME=secret_goes_here
+set DB_DATABASE_NAME=secret_goes_here
 ```
 
 To save time running each variable in the terminal, you may wish to create script files to store the declaration of each variable. 
@@ -83,7 +83,7 @@ To save time running each variable in the terminal, you may wish to create scrip
 - macOS: store the declaration of the variables in a `config.local.sh` file 
     - run using `. ./config.local.sh` 
 - windows: store the declaration of the variables in a `config.local.bat` file 
-    - run using `. ./config.local.bat` 
+    - run using `config.local.bat` 
 
 
 ### Run the application locally 
@@ -196,12 +196,12 @@ export DB_DATABASE_NAME="secret_goes_here"
 <b>windows:</b> 
 
 ```
-set CSV_ENDPOINT_CAPITAL_CITIES="path_to_csv" # from S3 object url
-set API_KEY_OPEN_WEATHER="secret_goes_here"
-set DB_USER="secret_goes_here" # e.g. postgres 
-set DB_PASSWORD="secret_goes_here" # e.g. postgres 
-set DB_SERVER_NAME="secret_goes_here" # e.g. postgres server host name on AWS 
-set DB_DATABASE_NAME="secret_goes_here"
+set CSV_ENDPOINT_CAPITAL_CITIES=path_to_csv
+set API_KEY_OPEN_WEATHER=secret_goes_here
+set DB_USER=secret_goes_here
+set DB_PASSWORD=secret_goes_here
+set DB_SERVER_NAME=secret_goes_here
+set DB_DATABASE_NAME=secret_goes_here
 ```
 
 To save time running each variable in the terminal, you may wish to create script files to store the declaration of each variable. 
@@ -209,7 +209,7 @@ To save time running each variable in the terminal, you may wish to create scrip
 - macOS: store the declaration of the variables in a `config.aws.sh` file 
     - run using `. ./config.aws.sh` 
 - windows: store the declaration of the variables in a `config.aws.bat` file 
-    - run using `. ./config.aws.bat` 
+    - run using `config.aws.bat` 
 
 
 ### Test locally 
@@ -221,7 +221,7 @@ At this point, it is a good idea to test that everything still works when runnin
 . ./config.aws.sh
 
 # or, declare the environment variables (windows)
-. ./config.aws.bat
+config.aws.bat
 
 # run the ETL app 
 python etl_lambda_local.py
@@ -250,13 +250,22 @@ zip -g ../lambda_package.zip etl_lambda.py transform_functions.py
 ```
 
 <b>windows</b>:
+
+Note for Windows-only - You will need to install 7z (7-zip) which is a command line tool used for zipping files. 
+
+1. Go to https://www.7-zip.org/ and download the version for your windows PC (usually 64-bit x64)
+2. Run the installer .exe file 
+3. Add the path `C:\Program Files\7-Zip` to your environment variables `path` 
+
+
 ```
 pip install --target ./.package -r ./requirements.lambda.txt
 cd .package
-zip -r ../lambda_package.zip .
+7z a -tzip ../lambda_package.zip .
 cd ..
-zip -g lambda_package.zip etl_lambda.py transform_functions.py
+7z a -tzip lambda_package.zip etl_lambda.py transform_functions.py
 ```
+
 
 This will produce a `.zip` file which contains all the code and library packages required to run the app on AWS Lambda. Note that some libraries like Pandas and Numpy were not packaged in the process as those libraries need to be packaged using a linux machine, whereas we are using Mac or Windows machines. So instead, we will use Layers in AWS Lambda later. 
 
@@ -271,7 +280,7 @@ You can just build the app by running either
 
 <b>windows</b>:
 ```
-. ./build.bat
+build.bat
 ```
 
 #### Deploy app

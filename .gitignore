@@ -2,6 +2,7 @@
 credentials.py
 logs
 config.*.sh
+config.*.bat
 .package
 *.zip
 .DS_Store
