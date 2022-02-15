@@ -12,6 +12,7 @@ docs/                                       # contains additional documentation
 images/                                     # contains images used for the README
 lambda_app/    
     |__ _config.template.sh                 # template for adding credentials and secrets 
+    |__ _config.template.bat                 # template for adding credentials and secrets 
     |__ ddl_create_table.sql                # SQL code used to create the target tables 
     |__ etl_lambda.py                       # contains the main etl logic 
     |__ etl_lambda_local.py                 # contains the etl logic to run locally 
@@ -19,6 +20,7 @@ lambda_app/
     |__ transform_functions.py              # custom user-generated transformation functions 
     |__ requirements.txt                    # python dependencies for lambda app 
     |__ build.sh                            # shell script to build the zip file 
+    |__ build.bat                            # shell script to build the zip file 
 README.md                                   # all you need to know is in here 
 ```
 
